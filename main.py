@@ -23,7 +23,7 @@ def transcribe_video(video_path: str, num_speakers: int, language: str) -> list[
     :param language: Language of the audio file
     :return: List of Segments with 'start', 'end', 'text', 'speaker_id'
     """
-    from moviepy.editor import VideoFileClip
+    from moviepy import VideoFileClip
 
     tmp_audio_path = 'audiofile.wav'  # Path to the temporary audio file
 
