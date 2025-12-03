@@ -34,7 +34,7 @@ def transcribe_video(video_path: str, num_speakers: int, language: str) -> list[
     if video.audio is None:
         raise ValueError('Video has no audio')
 
-    video.audio.write_audiofile(tmp_audio_path, codec='pcm_s16le', fps=44100, nbytes=2)
+    video.audio.write_audiofile(tmp_audio_path, codec='pcm_s16le', fps=16000, nbytes=2, ffmpeg_params=['-ac', '1'])
     print('Converted video to audio')
 
     segments = transcribe_audio(tmp_audio_path, num_speakers, language)
@@ -110,14 +110,20 @@ def __diarize_audio(audio_path: str, num_speakers: int) -> list[int]:
     Perform speaker diarization on the audio file. The function returns a list of speaker IDs for fixed-duration segments. The speaker IDs are integers starting from 0. The function also detects silence periods in the audio file which are represented by a speaker ID of -1.
     """
     from pyAudioAnalysis.audioSegmentation import speaker_diarization
+    from pyAudioAnalysis.audioBasicIO import read_audio_file
 
-    # Detect silence periods
     silence_periods = __detect_silence(audio_path)
 
-    [flags, classes, accuracy] = speaker_diarization(audio_path, num_speakers, plot_res=False)
-    flags = [int(flag) for flag in flags]
+    try:
+        [flags, classes, accuracy] = speaker_diarization(audio_path, num_speakers, plot_res=False)
+        flags = [int(flag) for flag in flags]
+    except (ValueError, IndexError) as e:
+        print(f'Warning: Speaker diarization failed ({e}). Using fallback: assigning all segments to speaker 0.')
+        [fs, x] = read_audio_file(audio_path)
+        audio_duration = len(x) / fs
+        num_segments = int(audio_duration / AS_SEGMENT_DURATION)
+        flags = [0] * num_segments
 
-    # Adjust flags based on silence
     adjusted_flags = __adjust_flags_for_silence(flags, silence_periods)
 
     return adjusted_flags
