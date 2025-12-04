@@ -35,6 +35,10 @@ def transcribe_video(video_path: str, num_speakers: int, language: str) -> list[
         raise ValueError('Video has no audio')
 
     video.audio.write_audiofile(tmp_audio_path, codec='pcm_s16le', fps=16000, nbytes=2, ffmpeg_params=['-ac', '1'])
+    
+    import wave
+    with wave.open(tmp_audio_path, 'rb') as wf:
+        print(f'Audio file info: {wf.getnchannels()} channels, {wf.getframerate()} Hz, {wf.getnframes()} frames, {wf.getnframes()/wf.getframerate():.2f} seconds')
     print('Converted video to audio')
 
     segments = transcribe_audio(tmp_audio_path, num_speakers, language)
@@ -54,21 +58,43 @@ def transcribe_audio(audio_path: str, num_speakers: int, language: str) -> list[
     """
     import whisper
 
-    # Load the Whisper model (automatically downloads the model if it's the first time)
     print('Loading model')
-    model = whisper.load_model('medium')
+    model = whisper.load_model('large-v3')
     print('Loaded model')
 
-    # Transcribe the audio to German
     print('Transcribing audio')
-    result = model.transcribe(audio_path, language=language, verbose=True)
+    result = model.transcribe(
+        audio_path, 
+        language=language, 
+        verbose=True,
+        temperature=0.0,
+        compression_ratio_threshold=2.4,
+        logprob_threshold=-1.0,
+        no_speech_threshold=0.6,
+        condition_on_previous_text=False
+    )
     print('Transcribed audio')
 
     segments = []
     for segment in result['segments']:
-        segments.append(Segment(segment['start'], segment['end'], segment['text'].strip(), None))  # type: ignore
-
-    print(segments)
+        text = segment['text'].strip()
+        segments.append(Segment(segment['start'], segment['end'], text, None))  # type: ignore
+    
+    segments = __remove_hallucinated_segments(segments)
+    
+    print(f'Transcribed {len(segments)} segments')
+    if len(segments) > 0:
+        print(f'First segment: {segments[0]}')
+        if len(segments) > 1:
+            print(f'Last segment: {segments[-1]}')
+    
+    unique_words = set()
+    for seg in segments:
+        unique_words.update(seg.text.lower().split())
+    print(f'Unique words in transcription: {len(unique_words)}')
+    if len(unique_words) < 10:
+        print(f'WARNING: Very few unique words detected. Transcription may have failed.')
+        print(f'Words: {unique_words}')
 
     flags = __diarize_audio(audio_path, num_speakers)
 
@@ -183,6 +209,38 @@ def __detect_silence(audio_path: str, smoothing_filter_size: int = 100) -> list[
         silent_periods.append((start_time, len(silent_frames) * 0.025))
 
     return silent_periods
+
+
+def __remove_hallucinated_segments(segments: list[Segment]) -> list[Segment]:
+    """
+    Remove hallucinated/repeated segments from Whisper transcription.
+    Detects when the same text is repeated multiple times consecutively.
+    """
+    if len(segments) < 3:
+        return segments
+    
+    filtered_segments = []
+    i = 0
+    
+    while i < len(segments):
+        current_text = segments[i].text.lower().strip()
+        
+        repetition_count = 1
+        j = i + 1
+        while j < len(segments) and segments[j].text.lower().strip() == current_text:
+            repetition_count += 1
+            j += 1
+        
+        if repetition_count >= 3:
+            print(f'Detected hallucination: "{segments[i].text}" repeated {repetition_count} times at {segments[i].start:.2f}s. Keeping only first occurrence.')
+            filtered_segments.append(segments[i])
+            i = j
+        else:
+            for k in range(i, j):
+                filtered_segments.append(segments[k])
+            i = j
+    
+    return filtered_segments
 
 
 def __adjust_flags_for_silence(flags: list[int], silence_periods: list[tuple[float, float]]) -> list[int]:
