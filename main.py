@@ -348,7 +348,7 @@ def __organize_by_speaker(transcription_segments: list[Segment]) -> list[Segment
 
     for segment in transcription_segments:
         # Check if the current segment is continuing
-        if segment.speaker_id == current_speaker:
+        if segment.speaker_id == current_speaker and current_segment is not None:
             # Append text to the current segment
             current_segment.text += ' ' + segment.text
             current_segment.end = segment.end
