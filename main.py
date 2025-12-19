@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 AS_SEGMENT_DURATION = 0.1  # Duration of each segment in the speaker diarization, in seconds
 TRANSCRIPT_PATH = 'transcript.txt'  # Path to the transcript file
-
+DEFAULT_VIDEO_DIRECTORY = None
 
 @dataclass
 class Segment:
@@ -374,7 +374,26 @@ def __organize_by_speaker(transcription_segments: list[Segment]) -> list[Segment
 
 
 if __name__ == '__main__':
-    video_path = input('Enter the path to the video file: ')
+    suggested_path = None
+    if DEFAULT_VIDEO_DIRECTORY is not None and os.path.exists(DEFAULT_VIDEO_DIRECTORY) and os.path.isdir(DEFAULT_VIDEO_DIRECTORY):
+        files = [f for f in os.listdir(DEFAULT_VIDEO_DIRECTORY) if os.path.isfile(os.path.join(DEFAULT_VIDEO_DIRECTORY, f))]
+        if files:
+            latest_file = max(files, key=lambda f: os.path.getmtime(os.path.join(DEFAULT_VIDEO_DIRECTORY, f)))
+            suggested_path = os.path.join(DEFAULT_VIDEO_DIRECTORY, latest_file)
+    
+    if suggested_path:
+        prompt = f'Enter the path to the video file [press Enter for: {suggested_path}]: '
+    else:
+        prompt = 'Enter the path to the video file: '
+    
+    video_path = input(prompt).strip()
+    if not video_path:
+        if suggested_path:
+            video_path = suggested_path
+            print(f'Using suggested file: {video_path}')
+        else:
+            raise ValueError('No video path provided')
+    
     if not os.path.exists(video_path):
         raise FileNotFoundError(f'File not found: {video_path}')
 
