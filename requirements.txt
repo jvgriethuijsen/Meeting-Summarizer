@@ -1,17 +1,24 @@
+# --- Core transcription / video ---
 openai-whisper
 moviepy
-numpy
 
+# --- Diarization stack (pyAudioAnalysis is sensitive to ABI/version combos on Windows) ---
+numpy==1.23.5
+scipy==1.10.1
+scikit-learn==1.2.2
+imbalanced-learn==0.10.1
 pyAudioAnalysis
-matplotlib>=3.4.2
-simplejson>=3.16.0
-scipy>=1.6.3
-numpy>=1.20.3
-hmmlearn>=0.2.5
-eyeD3>=0.9.6
+
+# --- Audio utilities ---
 pydub>=0.25.1
-scikit_learn>=0.24.2
+eyeD3>=0.9.6
+
+# --- Models / misc ---
+hmmlearn>=0.2.5
 tqdm>=4.52.0
-plotly>=5.3.1
+simplejson>=3.16.0
+
+# --- Data / plotting (safe with pinned numpy) ---
 pandas>=1.2.4
-imblearn
+matplotlib>=3.4.2
+plotly>=5.3.1
