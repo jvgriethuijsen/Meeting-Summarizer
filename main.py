@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 AS_SEGMENT_DURATION = 0.1  # Duration of each segment in the speaker diarization, in seconds
 TRANSCRIPT_PATH = 'transcript.txt'  # Path to the transcript file
-DEFAULT_VIDEO_DIRECTORY = None
+DEFAULT_MEDIA_DIRECTORY = "C:\\Users\\notel\\Videos"
 
 @dataclass
 class Segment:
@@ -15,31 +15,28 @@ class Segment:
     speaker_id: int | None  # -1 for silence
 
 
-def transcribe_video(video_path: str, num_speakers: int, language: str) -> list[Segment]:
+def transcribe_media(media_path: str, num_speakers: int, language: str) -> list[Segment]:
     """
-    Transcribe the audio of a video file to text. The function performs speaker diarization on the audio file and transcribes the audio to text using the Whisper model. The function returns a list of Segments with 'start', 'end', 'text', 'speaker_id'. The 'speaker_id' is an integer representing the speaker ID for the segment. These segments should represent the dialogue as accurately as possible, with each segment containing the text spoken by a single speaker and the next segment containing the text spoken by another speaker. The speaker ID should be unique for each speaker and should be consistent throughout the transcription.
-    :param video_path: Path to the video file
+    Transcribe the audio of a media file (video or audio) to text. The function performs speaker diarization on the audio and transcribes the audio to text using the Whisper model. The function returns a list of Segments with 'start', 'end', 'text', 'speaker_id'. The 'speaker_id' is an integer representing the speaker ID for the segment. These segments should represent the dialogue as accurately as possible, with each segment containing the text spoken by a single speaker and the next segment containing the text spoken by another speaker. The speaker ID should be unique for each speaker and should be consistent throughout the transcription.
+    :param media_path: Path to the media file
     :param num_speakers: Number of speakers in the audio file
     :param language: Language of the audio file
     :return: List of Segments with 'start', 'end', 'text', 'speaker_id'
     """
-    from moviepy import VideoFileClip
+    from moviepy import AudioFileClip
 
     tmp_audio_path = 'audiofile.wav'  # Path to the temporary audio file
 
-    # Convert video to audio using moviepy
-    print(f'Converting {video_path} to {tmp_audio_path}')
-    video = VideoFileClip(video_path)
-    print(f'Loaded video {video_path}')
-    if video.audio is None:
-        raise ValueError('Video has no audio')
+    print(f'Converting {media_path} to {tmp_audio_path}')
+    audio = AudioFileClip(media_path)
+    print(f'Loaded media {media_path}')
 
-    video.audio.write_audiofile(tmp_audio_path, codec='pcm_s16le', fps=16000, nbytes=2, ffmpeg_params=['-ac', '1'])
+    audio.write_audiofile(tmp_audio_path, codec='pcm_s16le', fps=16000, nbytes=2, ffmpeg_params=['-ac', '1'])
     
     import wave
     with wave.open(tmp_audio_path, 'rb') as wf:
         print(f'Audio file info: {wf.getnchannels()} channels, {wf.getframerate()} Hz, {wf.getnframes()} frames, {wf.getnframes()/wf.getframerate():.2f} seconds')
-    print('Converted video to audio')
+    print('Converted media to audio')
 
     segments = transcribe_audio(tmp_audio_path, num_speakers, language)
 
@@ -375,32 +372,32 @@ def __organize_by_speaker(transcription_segments: list[Segment]) -> list[Segment
 
 if __name__ == '__main__':
     suggested_path = None
-    if DEFAULT_VIDEO_DIRECTORY is not None and os.path.exists(DEFAULT_VIDEO_DIRECTORY) and os.path.isdir(DEFAULT_VIDEO_DIRECTORY):
-        files = [f for f in os.listdir(DEFAULT_VIDEO_DIRECTORY) if os.path.isfile(os.path.join(DEFAULT_VIDEO_DIRECTORY, f))]
+    if DEFAULT_MEDIA_DIRECTORY is not None and os.path.exists(DEFAULT_MEDIA_DIRECTORY) and os.path.isdir(DEFAULT_MEDIA_DIRECTORY):
+        files = [f for f in os.listdir(DEFAULT_MEDIA_DIRECTORY) if os.path.isfile(os.path.join(DEFAULT_MEDIA_DIRECTORY, f))]
         if files:
-            latest_file = max(files, key=lambda f: os.path.getmtime(os.path.join(DEFAULT_VIDEO_DIRECTORY, f)))
-            suggested_path = os.path.join(DEFAULT_VIDEO_DIRECTORY, latest_file)
+            latest_file = max(files, key=lambda f: os.path.getmtime(os.path.join(DEFAULT_MEDIA_DIRECTORY, f)))
+            suggested_path = os.path.join(DEFAULT_MEDIA_DIRECTORY, latest_file)
     
     if suggested_path:
-        prompt = f'Enter the path to the video file [press Enter for: {suggested_path}]: '
+        prompt = f'Enter the path to the media file (video or audio) [press Enter for: {suggested_path}]: '
     else:
-        prompt = 'Enter the path to the video file: '
+        prompt = 'Enter the path to the media file (video or audio): '
     
-    video_path = input(prompt).strip()
-    if not video_path:
+    media_path = input(prompt).strip()
+    if not media_path:
         if suggested_path:
-            video_path = suggested_path
-            print(f'Using suggested file: {video_path}')
+            media_path = suggested_path
+            print(f'Using suggested file: {media_path}')
         else:
-            raise ValueError('No video path provided')
+            raise ValueError('No media path provided')
     
-    if not os.path.exists(video_path):
-        raise FileNotFoundError(f'File not found: {video_path}')
+    if not os.path.exists(media_path):
+        raise FileNotFoundError(f'File not found: {media_path}')
 
     num_speakers = int(input('Enter the number of speakers: '))
     language = input('Enter the language of the audio file: ')
 
-    transcription_segments = transcribe_video(video_path, num_speakers, language)
+    transcription_segments = transcribe_media(media_path, num_speakers, language)
 
     write_transcript(transcription_segments, TRANSCRIPT_PATH)
 
