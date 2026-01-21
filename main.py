@@ -1,10 +1,12 @@
 import os
 import numpy as np
 from dataclasses import dataclass
-
+from datetime import date
 
 AS_SEGMENT_DURATION = 0.1  # Duration of each segment in the speaker diarization, in seconds
-TRANSCRIPT_PATH = 'transcript.txt'  # Path to the transcript file
+today_str = date.today().strftime("%Y-%m-%d")
+TRANSCRIPT_PATH = f"{today_str}_transcript.txt"
+
 DEFAULT_MEDIA_DIRECTORY = "C:\\Users\\notel\\Videos"
 
 @dataclass
