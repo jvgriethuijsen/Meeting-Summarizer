@@ -28,8 +28,6 @@ def transcribe_media(media_path: str, num_speakers: int, language: str) -> list[
     from moviepy import AudioFileClip
 
     tmp_audio_path = 'audiofile.wav'  # Path to the temporary audio file
-    media_path = media_path.replace('"', '')
-    media_path = media_path.replace("'", '')
     print(f'Converting {media_path} to {tmp_audio_path}')
     audio = AudioFileClip(media_path)
     print(f'Loaded media {media_path}')
@@ -387,6 +385,10 @@ if __name__ == '__main__':
         prompt = 'Enter the path to the media file (video or audio): '
     
     media_path = input(prompt).strip()
+    
+    media_path = media_path.replace('"', '')
+    media_path = media_path.replace("'", '')
+    
     if not media_path:
         if suggested_path:
             media_path = suggested_path
