@@ -1,6 +1,7 @@
 transcription.txt
-transcript.txt
+*transcript.txt
 audiofile.wav
 
 **/__pycache__/**
 venv
+*.code-workspace
