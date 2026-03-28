@@ -3,11 +3,14 @@ import numpy as np
 from dataclasses import dataclass
 from datetime import date
 
+DEFAULT_MEDIA_DIRECTORY = "C:\\Users\\notel\\Videos"
+
 AS_SEGMENT_DURATION = 0.1  # Duration of each segment in the speaker diarization, in seconds
 today_str = date.today().strftime("%Y-%m-%d")
-TRANSCRIPT_PATH = f"{today_str}_transcript.txt"
+TRANSCRIPT_DIR = "transcripts"
+os.makedirs(TRANSCRIPT_DIR, exist_ok=True)
+TRANSCRIPT_PATH = os.path.join(TRANSCRIPT_DIR, f"{today_str}_transcript.txt")
 
-DEFAULT_MEDIA_DIRECTORY = "C:\\Users\\notel\\Videos"
 
 @dataclass
 class Segment:
